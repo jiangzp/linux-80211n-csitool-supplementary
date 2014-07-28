@@ -1,13 +1,13 @@
-all: print_packets get_first_bfee parse_log log_to_file nl_bf_to_eff
+all: print_packets  parse_log log_to_file
 
 KERNEL = $(strip $(shell uname -r))
 KERNEL_INCLUDE = -I /usr/src/linux-headers-$(KERNEL)/include
-CFLAGS = -Wall -Werror $(KERNEL_INCLUDE) -lm
+CFLAGS = -Wall -Werror $(KERNEL_INCLUDE) -lm 
 CC = gcc
 
 log_to_file: log_to_file.c
-
-nl_bf_to_eff: nl_bf_to_eff.c bf_to_eff.o iwl_nl.o util.o q_approx.o
+print_packets: print_packets.c
+ parse_log:  parse_log.c
 
 clean:
-	rm -f get_first_bfee log_to_file print_packets parse_log
+	rm -f log_to_file print_packets parse_log

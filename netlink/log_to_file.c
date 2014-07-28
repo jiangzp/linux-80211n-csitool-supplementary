@@ -1,6 +1,4 @@
-/*
- * (c) 2008-2011 Daniel Halperin <dhalperi@cs.washington.edu>
- */
+
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <linux/socket.h>
@@ -13,12 +11,10 @@
 #include <unistd.h>
 
 #define MAX_PAYLOAD 2048
-#define SLOW_MSG_CNT 1
+#define SLOW_MSG_CNT 50
 
 int sock_fd = -1;							// the socket
 FILE* out = NULL;
-
-void check_usage(int argc, char** argv);
 
 FILE* open_file(char* filename, char* spec);
 
@@ -32,16 +28,23 @@ int main(int argc, char** argv)
 	/* Local variables */
 	struct sockaddr_nl proc_addr, kern_addr;	// addrs for recv, send, bind
 	struct cn_msg *cmsg;
-	char buf[4096];
+	char buf[99999];
 	int ret;
-	unsigned short l, l2;
+	unsigned short l;
+	unsigned short  l2;
 	int count = 0;
+        uint32_t display_interval;
 
-	/* Make sure usage is correct */
-	check_usage(argc, argv);
 
 	/* Open and check log file */
 	out = open_file(argv[1], "w");
+
+        if (argc >= 3 || (1 != sscanf(argv[2],"%u",&display_interval))) {
+
+	display_interval = 200;
+}
+sscanf(argv[2],"%u",&display_interval);
+printf("argc %d, arg3 %s, display interval %d \n",argc, argv[2], display_interval);
 
 	/* Setup the socket */
 	sock_fd = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_CONNECTOR);
@@ -79,18 +82,24 @@ int main(int argc, char** argv)
 		/* Receive from socket with infinite timeout */
 		ret = recv(sock_fd, buf, sizeof(buf), 0);
 		if (ret == -1)
-			exit_program_err(-1, "recv");
+			exit_program_err(-1, "recvs");
 		/* Pull out the message portion and print some stats */
 		cmsg = NLMSG_DATA(buf);
-		if (count % SLOW_MSG_CNT == 0)
-			printf("received %d bytes: id: %d val: %d seq: %d clen: %d\n", cmsg->len, cmsg->id.idx, cmsg->id.val, cmsg->seq, cmsg->len);
+		//if (count % SLOW_MSG_CNT == 0)
+		//	printf("received %d bytes.\n", cmsg->len);
 		/* Log the data to file */
+		printf("received protocol 0x%X",cmsg->data[0]);
 		l = (unsigned short) cmsg->len;
 		l2 = htons(l);
 		fwrite(&l2, 1, sizeof(unsigned short), out);
 		ret = fwrite(cmsg->data, 1, l, out);
-		if (count % 100 == 0)
-			printf("wrote %d bytes [msgcnt=%u]\n", ret, count);
+		if (count % display_interval == 0) {
+
+                      printf("\b");
+                      printf("\r");
+                      printf("%db, cnt=%d", ret, count);
+                      fflush(stdout);
+                }
 		++count;
 		if (ret != l)
 			exit_program_err(1, "fwrite");
@@ -100,14 +109,6 @@ int main(int argc, char** argv)
 	return 0;
 }
 
-void check_usage(int argc, char** argv)
-{
-	if (argc != 2)
-	{
-		fprintf(stderr, "Usage: log_to_file <output_file>\n");
-		exit_program(1);
-	}
-}
 
 FILE* open_file(char* filename, char* spec)
 {

@@ -49,6 +49,7 @@ int main(int argc, char** argv)
 	uint32_t mode;
 	uint32_t delay_us;
 	struct timespec start, now;
+        struct timeval ;//timeNow;
 	int32_t diff;
 
 	/* Parse arguments */
@@ -95,14 +96,14 @@ int main(int argc, char** argv)
 	packet->dur = 0xffff;
 	if (mode == 0) {
 		memcpy(packet->addr1, "\x00\x16\xea\x12\x34\x56", 6);
-		get_mac_address(packet->addr2, "mon0");
-		memcpy(packet->addr1, "\x00\x16\xea\x12\x34\x56", 6);
+		memcpy(packet->addr2, "\x00\x16\xea\x12\x34\x56", 6);
+		get_mac_address(packet->addr3, "mon0");
 	} else if (mode == 1) {
 		memcpy(packet->addr1, "\x00\x16\xea\x12\x34\x56", 6);
 		memcpy(packet->addr2, "\x00\x16\xea\x12\x34\x56", 6);
 		memcpy(packet->addr3, "\xff\xff\xff\xff\xff\xff", 6);
 	}
-	packet->seq = 0;
+
 	tx_packet.packet = (uint8_t *)packet;
 	tx_packet.plen = sizeof(*packet) + packet_size;
 
@@ -115,7 +116,10 @@ int main(int argc, char** argv)
 	for (i = 0; i < num_packets; ++i) {
 		payload_memcpy(packet->payload, packet_size,
 				(i*packet_size) % PAYLOAD_SIZE);
-
+		packet->seq = (__le16)(i&0x0000ffff);
+		packet->dur = (__le16)(i>>16);
+		packet->addr3[0] = packet->dur>>8;
+		packet->addr3[1] = packet->dur&0x00ff;
 		if (delay_us) {
 			clock_gettime(CLOCK_MONOTONIC, &now);
 			diff = (now.tv_sec - start.tv_sec) * 1000000 +
@@ -124,7 +128,7 @@ int main(int argc, char** argv)
 			if (diff > 0 && diff < delay_us)
 				usleep(diff);
 		}
-
+               // %gettimeofday(&timeNow,NULL);
 		ret = tx80211_txpacket(&tx, &tx_packet);
 		if (ret < 0) {
 			fprintf(stderr, "Unable to transmit packet: %s\n",
@@ -135,7 +139,7 @@ int main(int argc, char** argv)
 		if (((i+1) % 1000) == 0)
 			printf("."); fflush(stdout);
 		if (((i+1) % 50000) == 0)
-			printf("%dk\n", (i+1)/1000); fflush(stdout);
+			printf("%dk \n", (i+1)/1000); fflush(stdout);
 	}
 
 	return 0;

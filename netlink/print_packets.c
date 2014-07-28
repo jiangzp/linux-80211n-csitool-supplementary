@@ -21,6 +21,7 @@ int main(int argc, char** argv)
 	/* Local variables */
 	uint8_t buf[BUF_SIZE];
 	uint16_t l, l2;
+        uint32_t count ; 
 	FILE* in;
 	uint8_t code;
 	size_t read;
@@ -59,7 +60,9 @@ int main(int argc, char** argv)
 		/* Beamforming packet */
 		if (code == 0xBB) {
 			bfee = (void *)&buf[1];
-			printf("rate=0x%x\n", bfee->fake_rate_n_flags);
+			count = bfee->client_sequence;
+			printf("count=0x%d, %d\n",count, bfee->client_sequence);
+                        
 		}
 
 		/* Read the next entry size */

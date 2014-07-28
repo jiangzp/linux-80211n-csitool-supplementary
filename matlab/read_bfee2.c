@@ -4,7 +4,7 @@
 #include "mex.h"
 
 /* The computational routine */
-void read_bfee(unsigned char *inBytes, mxArray *outCell)
+void read_bfee2(unsigned char *inBytes, mxArray *outCell)
 {
 	unsigned long timestamp_low = inBytes[0] + (inBytes[1] << 8) +
 		(inBytes[2] << 16) + (inBytes[3] << 24);
@@ -20,19 +20,21 @@ void read_bfee(unsigned char *inBytes, mxArray *outCell)
 	unsigned int antenna_sel = inBytes[15];
 	unsigned int len = inBytes[16] + (inBytes[17] << 8);
 	unsigned int fake_rate_n_flags = inBytes[18] + (inBytes[19] << 8);
+    unsigned int client_sequence = inBytes[20]+(inBytes[21] << 8)+(inBytes[22] << 16)+(inBytes[23] << 24);
+    /*printf("%d %d %d %d %d\n",inBytes[20], inBytes[21], inBytes[22], inBytes[23],client_sequence); */
 	unsigned int calc_len = (30 * (Nrx * Ntx * 8 * 2 + 3) + 7) / 8;
 	unsigned int i, j;
 	unsigned int index = 0, remainder;
-	unsigned char *payload = &inBytes[20];
+	unsigned char *payload = &inBytes[24];
 	char tmp;
 	int size[] = {Ntx, Nrx, 30};
-	mxArray *csi = mxCreateNumericArray(3, size, mxDOUBLE_CLASS, mxCOMPLEX);
+	mxArray *csi = mxCreateNumericArray(3, size, mxSINGLE_CLASS, mxCOMPLEX);
 	double* ptrR = (double *)mxGetPr(csi);
 	double* ptrI = (double *)mxGetPi(csi);
 
 	/* Check that length matches what it should */
 	if (len != calc_len)
-		mexErrMsgIdAndTxt("MIMOToolbox:read_bfee_new:size","Wrong beamforming matrix size.");
+		mexErrMsgIdAndTxt("MIMOToolbox:read_bfee2_new:size","Wrong beamforming matrix size.");
 
 	/* Compute CSI from all this crap :) */
 	for (i = 0; i < 30; ++i)
@@ -86,6 +88,7 @@ void read_bfee(unsigned char *inBytes, mxArray *outCell)
 	mxSetField(outCell, 0, "agc", mxCreateDoubleScalar((double)agc));
 	mxSetField(outCell, 0, "perm", perm);
 	mxSetField(outCell, 0, "rate", mxCreateDoubleScalar((double)fake_rate_n_flags));
+    mxSetField(outCell, 0, "client_sequence", mxCreateDoubleScalar((double)client_sequence));
 	mxSetField(outCell, 0, "csi", csi);
 
 }
@@ -99,14 +102,14 @@ void mexFunction(int nlhs, mxArray *plhs[],
 
 	/* check for proper number of arguments */
 	if(nrhs!=1) {
-		mexErrMsgIdAndTxt("MIMOToolbox:read_bfee_new:nrhs","One input required.");
+		mexErrMsgIdAndTxt("MIMOToolbox:read_bfee2_new:nrhs","One input required.");
 	}
 	if(nlhs!=1) {
-		mexErrMsgIdAndTxt("MIMOToolbox:read_bfee_new:nlhs","One output required.");
+		mexErrMsgIdAndTxt("MIMOToolbox:read_bfee2_new:nlhs","One output required.");
 	}
 	/* make sure the input argument is a char array */
 	if (!mxIsClass(prhs[0], "uint8")) {
-		mexErrMsgIdAndTxt("MIMOToolbox:read_bfee_new:notBytes","Input must be a char array");
+		mexErrMsgIdAndTxt("MIMOToolbox:read_bfee2_new:notBytes","Input must be a char array");
 	}
 
 	/* create a pointer to the real data in the input matrix */
@@ -122,12 +125,13 @@ void mexFunction(int nlhs, mxArray *plhs[],
 		"agc",
 		"perm",
 		"rate",
+        "client_sequence",
 		"csi"};
-	outCell = mxCreateStructMatrix(1, 1, 13, fieldnames);
+	outCell = mxCreateStructMatrix(1, 1, 14, fieldnames);
 
 
 	/* call the computational routine */
-	read_bfee(inBytes,outCell);
+	read_bfee2(inBytes,outCell);
 
 	/* */
 	plhs[0] = outCell;

@@ -4,7 +4,7 @@
 %
 % (c) 2008-2011 Daniel Halperin <dhalperi@cs.washington.edu>
 %
-function ret = read_bf_file(filename,style)
+function ret = read_bf_file2(filename,style)
 %% Input check
 if nargin ==1
     style = 'legacy';
@@ -73,22 +73,11 @@ while cur < (len - 3)
             ret{count} = read_bfee(bytes);
         end
         
-        perm = ret{count}.perm;
-        Nrx = ret{count}.Nrx;
-        if Nrx == 1 % No permuting needed for only 1 antenna
-            continue;
-        end
-        if sum(perm) ~= triangle(Nrx) % matrix does not contain default values
-            if broken_perm == 0
-                broken_perm = 1;
-                fprintf('WARN ONCE: Found CSI (%s) with Nrx=%d and invalid perm=[%s]\n', filename, Nrx, int2str(perm));
-            end
-        else
-            ret{count}.csi(:,perm(1:Nrx),:) = ret{count}.csi(:,1:Nrx,:);
-        end
     end
 end
 ret = ret(1:count);
+
+
 
 %% Close file
 fclose(f);

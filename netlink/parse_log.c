@@ -1,6 +1,4 @@
-/*
- * (c) 2011 Daniel Halperin <dhalperi@cs.washington.edu>
- */
+
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
